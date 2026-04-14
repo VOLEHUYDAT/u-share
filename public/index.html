@@ -41,6 +41,15 @@
         .btn-delete { background: #fce8e6; color: #d93025; border: 1px solid #fad2d2; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
         .btn-download { text-decoration: none; color: var(--primary); font-weight: bold; font-size: 13px; display: inline-block; padding: 6px 0; }
         .btn-download:hover { text-decoration: underline; }
+        .ext-badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 6px; }
+        .ext-pdf  { background: #fce8e6; color: #b31412; }
+        .ext-doc  { background: #e8f0fe; color: #185fa5; }
+        .ext-ppt  { background: #fef0e0; color: #854f0b; }
+        .ext-xls  { background: #e6f4ea; color: #1e7e34; }
+        .ext-img  { background: #f3e8fd; color: #6d28d9; }
+        .ext-zip  { background: #f1f3f4; color: #5f6368; }
+        .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid #dadce0; background: white; color: #5f6368; font-size: 13px; cursor: pointer; }
+        .filter-btn.active { background: #4285f4; color: white; border-color: #4285f4; }
     </style>
 </head>
 <body>
@@ -79,6 +88,7 @@
     <div class="main-content">
         <div class="top-bar">
             <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm tài liệu..." onkeyup="filterDocs()" style="padding:12px 20px; border-radius:30px; border:1px solid #dfe1e5; width:400px; outline: none;">
+            <div id="filterBar" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
             <div id="user-display" style="display: none;">
                 <div class="user-profile">
                     <img id="user-pic" src="">
@@ -149,6 +159,9 @@
 
         function renderDocs(docs) {
             const container = document.getElementById('gridContainer');
+            const extInfo = getExt(doc.file_name);git 
+            // Thêm vào đầu card-header:
+            `<span class="ext-badge ${extInfo.cls}">${extInfo.label}</span>`
             if (docs.length === 0) {
                 container.innerHTML = '<p style="text-align:center; width:100%;">Không có tài liệu nào.</p>';
                 return;
@@ -296,6 +309,40 @@
             google.accounts.id.renderButton(document.querySelector(".g_id_signin"), { theme: "outline", size: "large" });
             loadDocuments();
         };
+
+        function getExt(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            if (['pdf'].includes(ext)) return {type:'pdf', label:'PDF', cls:'ext-pdf'};
+            if (['doc','docx'].includes(ext)) return {type:'doc', label:'Word', cls:'ext-doc'};
+            if (['ppt','pptx'].includes(ext)) return {type:'ppt', label:'PowerPoint', cls:'ext-ppt'};
+            if (['xls','xlsx'].includes(ext)) return {type:'xls', label:'Excel', cls:'ext-xls'};
+            if (['png','jpg','jpeg'].includes(ext)) return {type:'img', label:'Ảnh', cls:'ext-img'};
+            if (['zip','rar'].includes(ext)) return {type:'zip', label:'Nén', cls:'ext-zip'};
+            return {type:'other', label:'Khác', cls:''};
+        }
+
+        let activeFilter = 'all';
+
+        function buildFilters(docs) {
+            const types = ['pdf','doc','ppt','xls','img','zip'];
+            let html = `<button class="filter-btn active" onclick="setFilter('all')">Tất cả (${docs.length})</button>`;
+            types.forEach(t => {
+                const count = docs.filter(d => getExt(d.file_name).type === t).length;
+                if (count > 0) {
+                const info = getExt(t + '.' + t);
+                html += `<button class="filter-btn" onclick="setFilter('${t}')">${getExt('x.'+t).label} (${count})</button>`;
+                }
+            });
+            document.getElementById('filterBar').innerHTML = html;
+        }
+
+        function setFilter(type) {
+            activeFilter = type;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            const filtered = type === 'all' ? allDocs : allDocs.filter(d => getExt(d.file_name).type === type);
+            renderDocs(filtered);
+        }
     </script>
 </body>
 </html>
