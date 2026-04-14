@@ -9,6 +9,7 @@
         :root { --primary: #4285f4; --success: #34a853; --dark: #202124; --gray: #5f6368; --light: #f1f3f4; }
         body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; margin: 0; background: #f8f9fa; display: flex; height: 100vh; overflow: hidden; }
         
+        /* SIDEBAR */
         .sidebar { width: 320px; background: white; border-right: 1px solid #dadce0; padding: 25px 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; box-sizing: border-box; box-shadow: 2px 0 5px rgba(0,0,0,0.02); z-index: 10;}
         .logo { font-size: 26px; font-weight: bold; color: var(--primary); display: flex; align-items: center; gap: 10px; margin-bottom: 20px; justify-content: center; }
         
@@ -20,17 +21,19 @@
         .btn-primary { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; }
         .btn-primary:hover { background: #3367d6; }
         
+        /* MAIN CONTENT */
         .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .top-bar { padding: 15px 30px; border-bottom: 1px solid #dadce0; display: flex; justify-content: space-between; align-items: center; background: white; }
         .user-profile { display: flex; align-items: center; gap: 10px; background: white; padding: 4px 15px 4px 4px; border-radius: 30px; border: 1px solid #dadce0; }
         #user-pic { width: 34px; height: 34px; border-radius: 50%; }
 
+        /* GRID & CARDS */
         .grid-container { flex: 1; padding: 20px 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; overflow-y: auto; align-content: start; }
         .doc-card { border: 1px solid #dadce0; border-radius: 12px; padding: 18px; background: #fff; transition: 0.2s; }
         .doc-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
         .card-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; }
         
-        /* COMMENT STYLES */
+        /* COMMENTS */
         .comment-section { margin-top: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; font-size: 12px; }
         .comment-list { max-height: 120px; overflow-y: auto; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px;}
         .comment-item { margin-bottom: 8px; line-height: 1.4; }
@@ -38,17 +41,21 @@
         .comment-input-area { display: flex; gap: 5px; }
         .comment-input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
         
+        /* BUTTONS & BADGES */
         .btn-delete { background: #fce8e6; color: #d93025; border: 1px solid #fad2d2; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
         .btn-download { text-decoration: none; color: var(--primary); font-weight: bold; font-size: 13px; display: inline-block; padding: 6px 0; }
         .btn-download:hover { text-decoration: underline; }
-        .ext-badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 6px; }
+        
+        .ext-badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 6px; vertical-align: middle;}
         .ext-pdf  { background: #fce8e6; color: #b31412; }
         .ext-doc  { background: #e8f0fe; color: #185fa5; }
         .ext-ppt  { background: #fef0e0; color: #854f0b; }
         .ext-xls  { background: #e6f4ea; color: #1e7e34; }
         .ext-img  { background: #f3e8fd; color: #6d28d9; }
         .ext-zip  { background: #f1f3f4; color: #5f6368; }
-        .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid #dadce0; background: white; color: #5f6368; font-size: 13px; cursor: pointer; }
+        
+        .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid #dadce0; background: white; color: #5f6368; font-size: 13px; cursor: pointer; transition: 0.2s;}
+        .filter-btn:hover { background: #f1f3f4; }
         .filter-btn.active { background: #4285f4; color: white; border-color: #4285f4; }
     </style>
 </head>
@@ -87,8 +94,8 @@
 
     <div class="main-content">
         <div class="top-bar">
-            <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm tài liệu..." onkeyup="filterDocs()" style="padding:12px 20px; border-radius:30px; border:1px solid #dfe1e5; width:400px; outline: none;">
-            <div id="filterBar" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+            <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm tài liệu..." onkeyup="filterDocs()" style="padding:12px 20px; border-radius:30px; border:1px solid #dfe1e5; width:300px; outline: none;">
+            <div id="filterBar" style="display:flex; gap:8px; flex-wrap:wrap; flex: 1; padding: 0 20px;"></div>
             <div id="user-display" style="display: none;">
                 <div class="user-profile">
                     <img id="user-pic" src="">
@@ -105,8 +112,9 @@
         const API_URL = 'https://uth-doc-api-795084004959.asia-southeast1.run.app';
         let allDocs = [];
         let userData = {};
+        let activeFilter = 'all';
 
-        // SỬA LỖI 2: HÀM PARSE CHỐNG LỖI FONT TIẾNG VIỆT
+        // ===== UTILITIES =====
         function parseJwt(token) {
             var base64Url = token.split('.')[1];
             var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -115,20 +123,21 @@
             }).join('')));
         }
 
-        async function loadSubjects() {
-            try {
-                const res = await fetch(`${API_URL}/subjects`);
-                const subjects = await res.json();
-                const select = document.getElementById('subjectSelect');
-                select.innerHTML = '<option value="">-- Chọn môn học --</option>' + 
-                    subjects.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
-            } catch (e) {
-                console.error("Lỗi tải môn học:", e);
-            }
+        function getExt(filename) {
+            if (!filename) return {type:'other', label:'Khác', cls:''};
+            const ext = filename.split('.').pop().toLowerCase();
+            if (['pdf'].includes(ext)) return {type:'pdf', label:'PDF', cls:'ext-pdf'};
+            if (['doc','docx'].includes(ext)) return {type:'doc', label:'Word', cls:'ext-doc'};
+            if (['ppt','pptx'].includes(ext)) return {type:'ppt', label:'PowerPoint', cls:'ext-ppt'};
+            if (['xls','xlsx'].includes(ext)) return {type:'xls', label:'Excel', cls:'ext-xls'};
+            if (['png','jpg','jpeg'].includes(ext)) return {type:'img', label:'Ảnh', cls:'ext-img'};
+            if (['zip','rar'].includes(ext)) return {type:'zip', label:'Nén', cls:'ext-zip'};
+            return {type:'other', label:'Khác', cls:''};
         }
 
+        // ===== AUTHENTICATION =====
         function handleCredentialResponse(response) {
-            const payload = parseJwt(response.credential); // Gọi hàm parse xịn
+            const payload = parseJwt(response.credential);
             userData = { email: payload.email, name: payload.name, picture: payload.picture };
             
             if (!payload.email.endsWith('@ut.edu.vn') && payload.email !== 'huydat13825@gmail.com') {
@@ -147,10 +156,23 @@
             loadDocuments();
         }
 
+        // ===== DATA FETCHING & RENDERING =====
+        async function loadSubjects() {
+            try {
+                const res = await fetch(`${API_URL}/subjects`);
+                const subjects = await res.json();
+                const select = document.getElementById('subjectSelect');
+                select.innerHTML = '<option value="">-- Chọn môn học --</option>' + 
+                    subjects.map(s => `<option value="${s.name}">${s.name}</option>`).join('') +
+                    '<option value="Khác...">Khác...</option>';
+            } catch (e) { console.error("Lỗi tải môn học:", e); }
+        }
+
         async function loadDocuments() {
             try {
                 const res = await fetch(`${API_URL}/documents`);
                 allDocs = await res.json();
+                buildFilters(allDocs);
                 renderDocs(allDocs);
             } catch(e) {
                 document.getElementById('gridContainer').innerHTML = "<p>Lỗi kết nối Server!</p>";
@@ -159,16 +181,13 @@
 
         function renderDocs(docs) {
             const container = document.getElementById('gridContainer');
-            const extInfo = getExt(doc.file_name);git 
-            // Thêm vào đầu card-header:
-            `<span class="ext-badge ${extInfo.cls}">${extInfo.label}</span>`
             if (docs.length === 0) {
-                container.innerHTML = '<p style="text-align:center; width:100%;">Không có tài liệu nào.</p>';
+                container.innerHTML = '<p style="text-align:center; width:100%; color:var(--gray);">Không tìm thấy tài liệu phù hợp.</p>';
                 return;
             }
 
             container.innerHTML = docs.map(doc => {
-                // SỬA LỖI 3: Khai báo lại deleteHTML để không bị lỗi trắng trang
+                const extInfo = getExt(doc.file_name);
                 let deleteHTML = '';
                 if (userData.email === 'huydat13825@gmail.com') {
                     deleteHTML = `<button onclick="deleteDoc(${doc.id})" class="btn-delete">🗑️ Xóa</button>`;
@@ -176,7 +195,9 @@
 
                 return `
                 <div class="doc-card">
-                    <span style="font-weight:bold; font-size:18px; color: var(--dark); display:block; margin-bottom: 10px;">📄 ${doc.subject_name}</span>
+                    <span style="font-weight:bold; font-size:18px; color: var(--dark); display:block; margin-bottom: 10px;">
+                        <span class="ext-badge ${extInfo.cls}">${extInfo.label}</span>${doc.subject_name}
+                    </span>
                     <div style="font-size: 13px; color: var(--gray); line-height: 1.6; background: #f8f9fa; padding: 10px; border-radius: 6px;">
                         📁 <b>File:</b> ${doc.file_name}<br>
                         👤 <b>Bởi:</b> ${doc.uploader_name}<br>
@@ -202,7 +223,84 @@
             docs.forEach(doc => loadComments(doc.id));
         }
 
-        // TÍNH NĂNG XÓA
+        // ===== FILTERS & SEARCH =====
+        function buildFilters(docs) {
+            const types = ['pdf','doc','ppt','xls','img','zip'];
+            let html = `<button class="filter-btn active" onclick="setFilter('all', event)">Tất cả (${docs.length})</button>`;
+            
+            types.forEach(t => {
+                const count = docs.filter(d => getExt(d.file_name).type === t).length;
+                if (count > 0) {
+                    html += `<button class="filter-btn" onclick="setFilter('${t}', event)">${getExt('x.'+t).label} (${count})</button>`;
+                }
+            });
+            document.getElementById('filterBar').innerHTML = html;
+        }
+
+        function setFilter(type, e) {
+            activeFilter = type;
+            if (e) {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+            }
+            filterDocs(); // Gọi lại filterDocs để kết hợp cả ô tìm kiếm và nút bấm
+        }
+
+        function filterDocs() {
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allDocs.filter(d => {
+                const matchSearch = d.subject_name.toLowerCase().includes(term) || d.file_name.toLowerCase().includes(term);
+                const matchType = activeFilter === 'all' ? true : getExt(d.file_name).type === activeFilter;
+                return matchSearch && matchType;
+            });
+            renderDocs(filtered);
+        }
+
+        // ===== UPLOAD & ACTIONS =====
+        function checkOtherSubject(select) {
+            const otherInput = document.getElementById('otherSubjectInput');
+            if (select.value === "Khác...") {
+                otherInput.style.display = "block";
+                otherInput.required = true;
+            } else {
+                otherInput.style.display = "none";
+                otherInput.required = false;
+            }
+        }
+
+        document.getElementById('uploadForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const status = document.getElementById('status');
+            const btn = document.getElementById('btnUpload');
+            
+            status.style.color = "orange";
+            status.innerText = "⏳ Đang đẩy lên mây...";
+            btn.disabled = true;
+
+            try {
+                const formData = new FormData(e.target);
+                if (document.getElementById('subjectSelect').value === "Khác...") {
+                    formData.set('subject_name', document.getElementById('otherSubjectInput').value); 
+                }
+
+                const res = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
+                const result = await res.json();
+                
+                if(result.error) throw new Error(result.error);
+                
+                status.style.color = "green";
+                status.innerText = "✅ " + result.message;
+                e.target.reset(); 
+                document.getElementById('otherSubjectInput').style.display = "none";
+                loadDocuments(); 
+            } catch (err) {
+                status.style.color = "red";
+                status.innerText = "❌ Lỗi: " + err.message;
+            } finally { 
+                btn.disabled = false; 
+            }
+        };
+
         async function deleteDoc(docId) {
             if (!confirm('Bạn có chắc chắn muốn xóa tài liệu này?')) return;
             try {
@@ -211,7 +309,13 @@
             } catch (err) { alert('Lỗi xóa: ' + err.message); }
         }
 
-        // TÍNH NĂNG BÌNH LUẬN
+        function countDownload(docId) {
+            fetch(`${API_URL}/download-hit/${docId}`, { method: 'POST' })
+                .then(() => setTimeout(loadDocuments, 1000))
+                .catch(err => console.error("Lỗi đếm:", err));
+        }
+
+        // ===== COMMENTS =====
         async function loadComments(docId) {
             try {
                 const res = await fetch(`${API_URL}/comments/${docId}`);
@@ -238,111 +342,16 @@
             } catch (e) { alert("Lỗi gửi bình luận"); }
         }
 
-        // TÍNH NĂNG ĐẾM LƯỢT TẢI
-        function countDownload(docId) {
-            fetch(`${API_URL}/download-hit/${docId}`, { method: 'POST' })
-                .then(() => setTimeout(loadDocuments, 1000))
-                .catch(err => console.error("Lỗi đếm:", err));
-        }
-
-        function filterDocs() {
-            const term = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = allDocs.filter(d => d.subject_name.toLowerCase().includes(term) || d.file_name.toLowerCase().includes(term));
-            renderDocs(filtered);
-        }
-
-        function checkOtherSubject(select) {
-            const otherInput = document.getElementById('otherSubjectInput');
-            if (select.value === "Khác...") {
-                otherInput.style.display = "block";
-                otherInput.required = true;
-            } else {
-                otherInput.style.display = "none";
-                otherInput.required = false;
-            }
-        }
-
-        // SỬA LỖI 1: FORM UPLOAD (Đã chèn lệnh fetch thật vào)
-        document.getElementById('uploadForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const status = document.getElementById('status');
-            const btn = document.getElementById('btnUpload');
-            
-            status.style.color = "orange";
-            status.innerText = "⏳ Đang đẩy lên mây...";
-            btn.disabled = true;
-
-            try {
-                const formData = new FormData(e.target);
-                const selectValue = document.getElementById('subjectSelect').value;
-                
-                // Nếu chọn "Khác...", lấy giá trị từ ô Input văn bản ghi đè lên
-                if (selectValue === "Khác...") {
-                    const newValue = document.getElementById('otherSubjectInput').value;
-                    formData.set('subject_name', newValue); 
-                }
-
-                // Thực hiện lệnh gửi file lên Backend
-                const res = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
-                const result = await res.json();
-                
-                if(result.error) throw new Error(result.error);
-                
-                status.style.color = "green";
-                status.innerText = "✅ " + result.message;
-                e.target.reset(); 
-                document.getElementById('otherSubjectInput').style.display = "none";
-                loadDocuments();  // Làm mới giao diện
-            } catch (err) {
-                status.style.color = "red";
-                status.innerText = "❌ Lỗi: " + err.message;
-            } finally { 
-                btn.disabled = false; 
-            }
-        };
-
+        // ===== INIT =====
         window.onload = () => {
             google.accounts.id.initialize({
                 client_id: "795084004959-m3f0dsc2gii4924rqo4lh8kmjt4kjigo.apps.googleusercontent.com",
                 callback: handleCredentialResponse
             });
             google.accounts.id.renderButton(document.querySelector(".g_id_signin"), { theme: "outline", size: "large" });
-            loadDocuments();
+            
+            // Xóa loadDocuments() ở đây vì nó sẽ được gọi sau khi Đăng nhập thành công để bảo mật dữ liệu.
         };
-
-        function getExt(filename) {
-            const ext = filename.split('.').pop().toLowerCase();
-            if (['pdf'].includes(ext)) return {type:'pdf', label:'PDF', cls:'ext-pdf'};
-            if (['doc','docx'].includes(ext)) return {type:'doc', label:'Word', cls:'ext-doc'};
-            if (['ppt','pptx'].includes(ext)) return {type:'ppt', label:'PowerPoint', cls:'ext-ppt'};
-            if (['xls','xlsx'].includes(ext)) return {type:'xls', label:'Excel', cls:'ext-xls'};
-            if (['png','jpg','jpeg'].includes(ext)) return {type:'img', label:'Ảnh', cls:'ext-img'};
-            if (['zip','rar'].includes(ext)) return {type:'zip', label:'Nén', cls:'ext-zip'};
-            return {type:'other', label:'Khác', cls:''};
-        }
-
-        let activeFilter = 'all';
-
-        function buildFilters(docs) {
-            const types = ['pdf','doc','ppt','xls','img','zip'];
-            let html = `<button class="filter-btn active" onclick="setFilter('all')">Tất cả (${docs.length})</button>`;
-            types.forEach(t => {
-                const count = docs.filter(d => getExt(d.file_name).type === t).length;
-                if (count > 0) {
-                const info = getExt(t + '.' + t);
-                html += `<button class="filter-btn" onclick="setFilter('${t}')">${getExt('x.'+t).label} (${count})</button>`;
-                }
-            });
-            document.getElementById('filterBar').innerHTML = html;
-        }
-
-        function setFilter(type) {
-            activeFilter = type;
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
-            const filtered = type === 'all' ? allDocs : allDocs.filter(d => getExt(d.file_name).type === type);
-            renderDocs(filtered);
-        }
     </script>
 </body>
 </html>
