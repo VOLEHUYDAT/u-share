@@ -17,6 +17,7 @@ DB_NAME = 'uth_documents'
 
 BUCKET_NAME = 'doc-share'
 
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/secrets/key.json'
 storage_client = storage.Client()
 
 # ===== DB CONNECTION =====

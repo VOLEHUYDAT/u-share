@@ -20,7 +20,7 @@ steps:
       - 'asia-southeast1'
       - '--allow-unauthenticated'
       # DÒNG QUAN TRỌNG NHẤT: Biến Secret thành file key.json vật lý
-      - '--set-secrets=/app/key.json=SERVICE_ACCOUNT_KEY:latest'
+      - '--set-secrets=/secrets/key.json=SERVICE_ACCOUNT_KEY:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY
