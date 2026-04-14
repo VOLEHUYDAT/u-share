@@ -68,7 +68,7 @@
             <div style="display: flex; justify-content: center;">
                 <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline" data-size="large"></div>
             </div>
-            <p style="font-size: 13px; color: var(--gray); text-align: center; margin-top: 15px;">Vui lòng đăng nhập bằng email sinh viên UTH.</p>
+            <p style="font-size: 13px; color: var(--gray); text-align: center; margin-top: 15px;">Vui lòng đăng nhập bằng email sinh viên UTH để Tải lên & Bình luận.</p>
         </div>
 
         <div id="upload-zone">
@@ -96,6 +96,7 @@
         <div class="top-bar">
             <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm tài liệu..." onkeyup="filterDocs()" style="padding:12px 20px; border-radius:30px; border:1px solid #dfe1e5; width:300px; outline: none;">
             <div id="filterBar" style="display:flex; gap:8px; flex-wrap:wrap; flex: 1; padding: 0 20px;"></div>
+            
             <div id="user-display" style="display: none;">
                 <div class="user-profile">
                     <img id="user-pic" src="">
@@ -114,7 +115,7 @@
         let userData = {};
         let activeFilter = 'all';
 
-        // ===== UTILITIES =====
+        // ===== UTILITIES (Công cụ hỗ trợ) =====
         function parseJwt(token) {
             var base64Url = token.split('.')[1];
             var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -135,16 +136,18 @@
             return {type:'other', label:'Khác', cls:''};
         }
 
-        // ===== AUTHENTICATION =====
+        // ===== AUTHENTICATION (Xác thực người dùng) =====
         function handleCredentialResponse(response) {
             const payload = parseJwt(response.credential);
             userData = { email: payload.email, name: payload.name, picture: payload.picture };
             
             if (!payload.email.endsWith('@ut.edu.vn') && payload.email !== 'huydat13825@gmail.com') {
                 alert("Truy cập bị từ chối! Email không hợp lệ.");
+                userData = {}; // Reset nếu sai email
                 return;
             }
 
+            // Đổi giao diện sau khi đăng nhập thành công
             document.getElementById('login-zone').style.display = 'none';
             document.getElementById('upload-zone').style.display = 'block';
             document.getElementById('user-display').style.display = 'block';
@@ -153,10 +156,10 @@
             document.getElementById('uploader_name').value = userData.name;
             
             loadSubjects();
-            loadDocuments();
+            loadDocuments(); // Render lại để hiện ô bình luận
         }
 
-        // ===== DATA FETCHING & RENDERING =====
+        // ===== DATA FETCHING & RENDERING (Tải và hiển thị dữ liệu) =====
         async function loadSubjects() {
             try {
                 const res = await fetch(`${API_URL}/subjects`);
@@ -188,9 +191,24 @@
 
             container.innerHTML = docs.map(doc => {
                 const extInfo = getExt(doc.file_name);
+                
+                // 1. Phân quyền nút XÓA (Chỉ admin)
                 let deleteHTML = '';
                 if (userData.email === 'huydat13825@gmail.com') {
                     deleteHTML = `<button onclick="deleteDoc(${doc.id})" class="btn-delete">🗑️ Xóa</button>`;
+                }
+
+                // 2. Phân quyền ô BÌNH LUẬN (Cần đăng nhập)
+                let commentBoxHTML = '';
+                if (userData.email) {
+                    commentBoxHTML = `
+                        <div class="comment-input-area">
+                            <input type="text" id="input-${doc.id}" class="comment-input" placeholder="Viết bình luận...">
+                            <button onclick="sendComment(${doc.id})" style="background:var(--primary); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Gửi</button>
+                        </div>
+                    `;
+                } else {
+                    commentBoxHTML = `<p style="font-size: 12px; color: var(--gray); text-align: center; margin-top: 5px;"><i>(Vui lòng đăng nhập để bình luận)</i></p>`;
                 }
 
                 return `
@@ -211,10 +229,7 @@
                     
                     <div class="comment-section">
                         <div id="comments-${doc.id}" class="comment-list">Đang tải bình luận...</div>
-                        <div class="comment-input-area">
-                            <input type="text" id="input-${doc.id}" class="comment-input" placeholder="Viết bình luận...">
-                            <button onclick="sendComment(${doc.id})" style="background:var(--primary); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Gửi</button>
-                        </div>
+                        ${commentBoxHTML}
                     </div>
                 </div>
                 `;
@@ -223,7 +238,7 @@
             docs.forEach(doc => loadComments(doc.id));
         }
 
-        // ===== FILTERS & SEARCH =====
+        // ===== FILTERS & SEARCH (Bộ lọc và Tìm kiếm) =====
         function buildFilters(docs) {
             const types = ['pdf','doc','ppt','xls','img','zip'];
             let html = `<button class="filter-btn active" onclick="setFilter('all', event)">Tất cả (${docs.length})</button>`;
@@ -243,7 +258,7 @@
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
             }
-            filterDocs(); // Gọi lại filterDocs để kết hợp cả ô tìm kiếm và nút bấm
+            filterDocs();
         }
 
         function filterDocs() {
@@ -256,7 +271,7 @@
             renderDocs(filtered);
         }
 
-        // ===== UPLOAD & ACTIONS =====
+        // ===== UPLOAD LOGIC (Xử lý tải file) =====
         function checkOtherSubject(select) {
             const otherInput = document.getElementById('otherSubjectInput');
             if (select.value === "Khác...") {
@@ -301,6 +316,7 @@
             }
         };
 
+        // ===== DELETE & DOWNLOAD HIT =====
         async function deleteDoc(docId) {
             if (!confirm('Bạn có chắc chắn muốn xóa tài liệu này?')) return;
             try {
@@ -315,7 +331,7 @@
                 .catch(err => console.error("Lỗi đếm:", err));
         }
 
-        // ===== COMMENTS =====
+        // ===== COMMENTS LOGIC (Xử lý bình luận) =====
         async function loadComments(docId) {
             try {
                 const res = await fetch(`${API_URL}/comments/${docId}`);
@@ -342,15 +358,17 @@
             } catch (e) { alert("Lỗi gửi bình luận"); }
         }
 
-        // ===== INIT =====
+        // ===== INIT (Khởi chạy khi mở trang) =====
         window.onload = () => {
+            // 1. Khởi tạo Google Sign-in
             google.accounts.id.initialize({
                 client_id: "795084004959-m3f0dsc2gii4924rqo4lh8kmjt4kjigo.apps.googleusercontent.com",
                 callback: handleCredentialResponse
             });
             google.accounts.id.renderButton(document.querySelector(".g_id_signin"), { theme: "outline", size: "large" });
             
-            // Xóa loadDocuments() ở đây vì nó sẽ được gọi sau khi Đăng nhập thành công để bảo mật dữ liệu.
+            // 2. Tải danh sách tài liệu hiển thị ngay cho Khách (Chưa đăng nhập)
+            loadDocuments();
         };
     </script>
 </body>
