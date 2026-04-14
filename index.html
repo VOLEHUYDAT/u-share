@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>U-Share | UTH Cloud Dashboard</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        :root { --primary: #4285f4; --success: #34a853; --dark: #202124; --gray: #5f6368; --light: #f1f3f4; }
+        body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; margin: 0; background: #f8f9fa; display: flex; height: 100vh; overflow: hidden; }
+        
+        .sidebar { width: 320px; background: white; border-right: 1px solid #dadce0; padding: 25px 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; box-sizing: border-box; box-shadow: 2px 0 5px rgba(0,0,0,0.02); z-index: 10;}
+        .logo { font-size: 26px; font-weight: bold; color: var(--primary); display: flex; align-items: center; gap: 10px; margin-bottom: 20px; justify-content: center; }
+        
+        #upload-zone { display: none; }
+        #uploadForm { background: white; padding: 20px; border-radius: 12px; border: 1px solid #dadce0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 6px; color: var(--gray); }
+        .input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid #dadce0; border-radius: 6px; box-sizing: border-box; background: #fafafa; }
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; }
+        .btn-primary:hover { background: #3367d6; }
+        
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .top-bar { padding: 15px 30px; border-bottom: 1px solid #dadce0; display: flex; justify-content: space-between; align-items: center; background: white; }
+        .user-profile { display: flex; align-items: center; gap: 10px; background: white; padding: 4px 15px 4px 4px; border-radius: 30px; border: 1px solid #dadce0; }
+        #user-pic { width: 34px; height: 34px; border-radius: 50%; }
+
+        .grid-container { flex: 1; padding: 20px 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; overflow-y: auto; align-content: start; }
+        .doc-card { border: 1px solid #dadce0; border-radius: 12px; padding: 18px; background: #fff; transition: 0.2s; }
+        .doc-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .card-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; }
+        
+        /* COMMENT STYLES */
+        .comment-section { margin-top: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; font-size: 12px; }
+        .comment-list { max-height: 120px; overflow-y: auto; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px;}
+        .comment-item { margin-bottom: 8px; line-height: 1.4; }
+        .comment-user { font-weight: bold; color: var(--primary); }
+        .comment-input-area { display: flex; gap: 5px; }
+        .comment-input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        
+        .btn-delete { background: #fce8e6; color: #d93025; border: 1px solid #fad2d2; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .btn-download { text-decoration: none; color: var(--primary); font-weight: bold; font-size: 13px; display: inline-block; padding: 6px 0; }
+        .btn-download:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="logo"><span>☁️</span> U-Share</div>
+        
+        <div id="login-zone">
+            <div style="display: flex; justify-content: center;">
+                <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline" data-size="large"></div>
+            </div>
+            <p style="font-size: 13px; color: var(--gray); text-align: center; margin-top: 15px;">Vui lòng đăng nhập bằng email sinh viên UTH.</p>
+        </div>
+
+        <div id="upload-zone">
+            <form id="uploadForm">
+                <p style="font-weight: bold; color: var(--primary); text-align: center; margin-top: 0;">📤 Upload tài liệu</p>
+                <div class="input-group">
+                    <label>MÔN HỌC</label>
+                    <select name="subject_name" id="subjectSelect" onchange="checkOtherSubject(this)" required>
+                        <option value="">-- Đang tải môn học... --</option>
+                    </select>
+                    <input type="text" id="otherSubjectInput" placeholder="Nhập tên môn mới..." style="display:none; margin-top:10px;">
+                </div>
+                <div class="input-group">
+                    <label>CHỌN FILE</label>
+                    <input type="file" name="file" required style="padding: 6px; font-size: 12px;">
+                </div>
+                <input type="hidden" id="uploader_name" name="uploader_name">
+                <button type="submit" class="btn-primary" id="btnUpload">🚀 Bắt đầu Upload</button>
+            </form>
+            <p id="status" style="font-size: 13px; text-align: center; margin-top: 12px; font-weight: bold;"></p>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="top-bar">
+            <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm tài liệu..." onkeyup="filterDocs()" style="padding:12px 20px; border-radius:30px; border:1px solid #dfe1e5; width:400px; outline: none;">
+            <div id="user-display" style="display: none;">
+                <div class="user-profile">
+                    <img id="user-pic" src="">
+                    <span id="user-name" style="font-size: 13px; font-weight: 500;"></span>
+                    <a onclick="location.reload()" style="color:#d93025; cursor:pointer; font-size:12px; margin-left:10px; font-weight: bold; text-decoration: none;">Thoát</a>
+                </div>
+            </div>
+        </div>
+
+        <div id="gridContainer" class="grid-container"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://uth-doc-api-795084004959.asia-southeast1.run.app';
+        let allDocs = [];
+        let userData = {};
+
+        // SỬA LỖI 2: HÀM PARSE CHỐNG LỖI FONT TIẾNG VIỆT
+        function parseJwt(token) {
+            var base64Url = token.split('.')[1];
+            var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            return JSON.parse(decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join('')));
+        }
+
+        async function loadSubjects() {
+            try {
+                const res = await fetch(`${API_URL}/subjects`);
+                const subjects = await res.json();
+                const select = document.getElementById('subjectSelect');
+                select.innerHTML = '<option value="">-- Chọn môn học --</option>' + 
+                    subjects.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+            } catch (e) {
+                console.error("Lỗi tải môn học:", e);
+            }
+        }
+
+        function handleCredentialResponse(response) {
+            const payload = parseJwt(response.credential); // Gọi hàm parse xịn
+            userData = { email: payload.email, name: payload.name, picture: payload.picture };
+            
+            if (!payload.email.endsWith('@ut.edu.vn') && payload.email !== 'huydat13825@gmail.com') {
+                alert("Truy cập bị từ chối! Email không hợp lệ.");
+                return;
+            }
+
+            document.getElementById('login-zone').style.display = 'none';
+            document.getElementById('upload-zone').style.display = 'block';
+            document.getElementById('user-display').style.display = 'block';
+            document.getElementById('user-pic').src = userData.picture;
+            document.getElementById('user-name').innerText = userData.name;
+            document.getElementById('uploader_name').value = userData.name;
+            
+            loadSubjects();
+            loadDocuments();
+        }
+
+        async function loadDocuments() {
+            try {
+                const res = await fetch(`${API_URL}/documents`);
+                allDocs = await res.json();
+                renderDocs(allDocs);
+            } catch(e) {
+                document.getElementById('gridContainer').innerHTML = "<p>Lỗi kết nối Server!</p>";
+            }
+        }
+
+        function renderDocs(docs) {
+            const container = document.getElementById('gridContainer');
+            if (docs.length === 0) {
+                container.innerHTML = '<p style="text-align:center; width:100%;">Không có tài liệu nào.</p>';
+                return;
+            }
+
+            container.innerHTML = docs.map(doc => {
+                // SỬA LỖI 3: Khai báo lại deleteHTML để không bị lỗi trắng trang
+                let deleteHTML = '';
+                if (userData.email === 'huydat13825@gmail.com') {
+                    deleteHTML = `<button onclick="deleteDoc(${doc.id})" class="btn-delete">🗑️ Xóa</button>`;
+                }
+
+                return `
+                <div class="doc-card">
+                    <span style="font-weight:bold; font-size:18px; color: var(--dark); display:block; margin-bottom: 10px;">📄 ${doc.subject_name}</span>
+                    <div style="font-size: 13px; color: var(--gray); line-height: 1.6; background: #f8f9fa; padding: 10px; border-radius: 6px;">
+                        📁 <b>File:</b> ${doc.file_name}<br>
+                        👤 <b>Bởi:</b> ${doc.uploader_name}<br>
+                        📥 <b style="color:#ea4335;">Lượt tải: ${doc.download_count || 0}</b>
+                    </div>
+                    
+                    <div class="card-actions">
+                        <a href="${doc.file_url}" target="_blank" class="btn-download" onclick="countDownload(${doc.id})">Tải xuống ↓</a>
+                        ${deleteHTML}
+                    </div>
+                    
+                    <div class="comment-section">
+                        <div id="comments-${doc.id}" class="comment-list">Đang tải bình luận...</div>
+                        <div class="comment-input-area">
+                            <input type="text" id="input-${doc.id}" class="comment-input" placeholder="Viết bình luận...">
+                            <button onclick="sendComment(${doc.id})" style="background:var(--primary); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Gửi</button>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+            
+            docs.forEach(doc => loadComments(doc.id));
+        }
+
+        // TÍNH NĂNG XÓA
+        async function deleteDoc(docId) {
+            if (!confirm('Bạn có chắc chắn muốn xóa tài liệu này?')) return;
+            try {
+                await fetch(`${API_URL}/delete/${docId}`, { method: 'DELETE' });
+                loadDocuments(); 
+            } catch (err) { alert('Lỗi xóa: ' + err.message); }
+        }
+
+        // TÍNH NĂNG BÌNH LUẬN
+        async function loadComments(docId) {
+            try {
+                const res = await fetch(`${API_URL}/comments/${docId}`);
+                const data = await res.json();
+                document.getElementById(`comments-${docId}`).innerHTML = data.length ? 
+                    data.map(c => `<div class="comment-item"><span class="comment-user">${c.user}:</span> ${c.content}</div>`).join('') :
+                    '<p style="color:#999; font-style:italic;">Chưa có bình luận nào.</p>';
+            } catch (e) {
+                document.getElementById(`comments-${docId}`).innerHTML = 'Lỗi tải bình luận';
+            }
+        }
+
+        async function sendComment(docId) {
+            const input = document.getElementById(`input-${docId}`);
+            if(!input.value.trim()) return;
+            try {
+                await fetch(`${API_URL}/comments/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ doc_id: docId, user_name: userData.name, user_email: userData.email, content: input.value })
+                });
+                input.value = '';
+                loadComments(docId);
+            } catch (e) { alert("Lỗi gửi bình luận"); }
+        }
+
+        // TÍNH NĂNG ĐẾM LƯỢT TẢI
+        function countDownload(docId) {
+            fetch(`${API_URL}/download-hit/${docId}`, { method: 'POST' })
+                .then(() => setTimeout(loadDocuments, 1000))
+                .catch(err => console.error("Lỗi đếm:", err));
+        }
+
+        function filterDocs() {
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allDocs.filter(d => d.subject_name.toLowerCase().includes(term) || d.file_name.toLowerCase().includes(term));
+            renderDocs(filtered);
+        }
+
+        function checkOtherSubject(select) {
+            const otherInput = document.getElementById('otherSubjectInput');
+            if (select.value === "Khác...") {
+                otherInput.style.display = "block";
+                otherInput.required = true;
+            } else {
+                otherInput.style.display = "none";
+                otherInput.required = false;
+            }
+        }
+
+        // SỬA LỖI 1: FORM UPLOAD (Đã chèn lệnh fetch thật vào)
+        document.getElementById('uploadForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const status = document.getElementById('status');
+            const btn = document.getElementById('btnUpload');
+            
+            status.style.color = "orange";
+            status.innerText = "⏳ Đang đẩy lên mây...";
+            btn.disabled = true;
+
+            try {
+                const formData = new FormData(e.target);
+                const selectValue = document.getElementById('subjectSelect').value;
+                
+                // Nếu chọn "Khác...", lấy giá trị từ ô Input văn bản ghi đè lên
+                if (selectValue === "Khác...") {
+                    const newValue = document.getElementById('otherSubjectInput').value;
+                    formData.set('subject_name', newValue); 
+                }
+
+                // Thực hiện lệnh gửi file lên Backend
+                const res = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
+                const result = await res.json();
+                
+                if(result.error) throw new Error(result.error);
+                
+                status.style.color = "green";
+                status.innerText = "✅ " + result.message;
+                e.target.reset(); 
+                document.getElementById('otherSubjectInput').style.display = "none";
+                loadDocuments();  // Làm mới giao diện
+            } catch (err) {
+                status.style.color = "red";
+                status.innerText = "❌ Lỗi: " + err.message;
+            } finally { 
+                btn.disabled = false; 
+            }
+        };
+
+        window.onload = () => {
+            google.accounts.id.initialize({
+                client_id: "795084004959-m3f0dsc2gii4924rqo4lh8kmjt4kjigo.apps.googleusercontent.com",
+                callback: handleCredentialResponse
+            });
+            google.accounts.id.renderButton(document.querySelector(".g_id_signin"), { theme: "outline", size: "large" });
+            loadDocuments();
+        };
+    </script>
+</body>
+</html>

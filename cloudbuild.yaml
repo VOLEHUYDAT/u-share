@@ -1,0 +1,26 @@
+steps:
+ 
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/uth-doc-api', '.']
+  
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/uth-doc-api']
+  
+ 
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args: 
+      - 'run'
+      - 'deploy'
+      - 'uth-doc-api'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/uth-doc-api'
+      - '--region'
+      - 'asia-southeast1'
+      - '--allow-unauthenticated'
+      # DÒNG QUAN TRỌNG NHẤT: Biến Secret thành file key.json vật lý
+      - '--set-secrets=/app/key.json=SERVICE_ACCOUNT_KEY:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
