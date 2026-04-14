@@ -5,7 +5,7 @@ from google.cloud import storage
 import mysql.connector
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+CORS(app, origins=["https://learning-hub-492108.web.app"])
 
 # ===== CONFIG =====
 DB_HOST = '34.158.45.10'
@@ -14,7 +14,6 @@ DB_PASS = '123456Ab!'
 DB_NAME = 'uth_documents'
 
 BUCKET_NAME = 'doc-share'
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key.json"
 
 storage_client = storage.Client()
 
